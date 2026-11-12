@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة الوحدة الحسابية | استمارة 75 ع.ح والتسويات 55 ع.ح</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Cairo & Tajawal for crisp Arabic financial UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- SheetJS (XLSX) for real Excel Import & Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- D3.js for Interactive Daily Statistics Visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'Inter', 'sans-serif'],
+                        mono: ['Inter', 'monospace']
+                    },
+                    colors: {
+                        gov: {
+                            900: '#0b192c',
+                            800: '#132a4a',
+                            700: '#1e3e62',
+                            600: '#2563eb',
+                            gold: '#d97706',
+                            emerald: '#059669'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+            font-family: 'Inter', 'Cairo', sans-serif;
+        }
+        /* Custom scrollbar for wide accounting tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Excel grid styling */
+        .excel-table th, .excel-table td {
+            border: 1px solid #cbd5e1;
+        }
+        .excel-header {
+            background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Executive Header -->
+    <header class="bg-gov-900 text-white shadow-lg sticky top-0 z-40 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between py-3 gap-3">
+                <!-- Brand & Unit Identity -->
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-md shrink-0">
+                        <i class="fa-solid fa-scale-balanced text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white">منظومة الوحدة الحسابية المتكاملة</h1>
+                            <span class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-semibold">GFMIS / 75 ع.ح</span>
+                        </div>
+                        <p class="text-xs text-slate-300">تجميع المستندات والتسويات (55 ع.ح) والربط بأوامر الدفع والتدفقات النقدية</p>
+                    </div>
+                </div>
+
+                <!-- Quick Global Actions -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="openGithubModal()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs sm:text-sm font-medium flex items-center gap-2 transition">
+                        <i class="fa-brands fa-github text-base"></i>
+                        <span class="hidden sm:inline">دليل النشر على GitHub</span>
+                    </button>
+                    <button onclick="exportFullExcel()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-2 transition">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>تصدير شيت الإكسيل</span>
+                    </button>
+                    <button onclick="switchTab('export-email')" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-2 transition">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>إرسال للإيميل</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex overflow-x-auto custom-scrollbar gap-1 pt-1 pb-0 text-xs sm:text-sm font-semibold" id="mainNav">
+                <button data-tab="dashboard" onclick="switchTab('dashboard')" class="nav-btn active whitespace-nowrap px-4 py-3 rounded-t-xl border-b-2 border-emerald-400 bg-slate-800/80 text-white flex items-center gap-2 transition">
+                    <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                    <span>الإحصائية اليومية</span>
+                </button>
+                <button data-tab="documents" onclick="switchTab('documents')" class="nav-btn whitespace-nowrap px-4 py-3 rounded-t-xl border-b-2 border-transparent text-slate-300 hover:text-white hover:bg-slate-800/40 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-folder-plus text-amber-400"></i>
+                    <span>تجميع المستندات والتسويات (55 ع.ح)</span>
+                    <span id="navDocCount" class="bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full text-xs tabular-nums">0</span>
+                </button>
+                <button data-tab="form75" onclick="switchTab('form75')" class="nav-btn whitespace-nowrap px-4 py-3 rounded-t-xl border-b-2 border-transparent text-slate-300 hover:text-white hover:bg-slate-800/40 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-table-list text-sky-400"></i>
+                    <span>استمارة 75 ع.ح (التأثير المحاسبي)</span>
+                </button>
+                <button data-tab="outputs" onclick="switchTab('outputs')" class="nav-btn whitespace-nowrap px-4 py-3 rounded-t-xl border-b-2 border-transparent text-slate-300 hover:text-white hover:bg-slate-800/40 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-diagram-project text-purple-400"></i>
+                    <span>أوامر الدفع والتدفقات النقدية</span>
+                </button>
+                <button data-tab="export-email" onclick="switchTab('export-email')" class="nav-btn whitespace-nowrap px-4 py-3 rounded-t-xl border-b-2 border-transparent text-slate-300 hover:text-white hover:bg-slate-800/40 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-envelope-open-text text-rose-400"></i>
+                    <span>معاينة الإكسيل والإرسال للبريد</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Unit Metadata Banner -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">الجهة / الوحدة الحسابية:</span>
+                    <input type="text" id="unitNameInput" value="الوحدة الحسابية الرئيسية - الإدارة العامة للشئون المالية" onchange="updateUnitMeta()" class="font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-slate-500">الفترة / الشهر:</span>
+                    <input type="text" id="periodInput" value="نوفمبر 2026 (الربع الثاني 2026/2027)" onchange="updateUnitMeta()" class="font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>البريد المعتمد: mohammedmaria@yahoo.com</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: DAILY STATISTICS & DASHBOARD                       -->
+        <!-- ========================================================= -->
+        <section id="tab-dashboard" class="tab-panel animate-fade-in space-y-6">
+            <!-- Filter Bar for Daily Stats -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-day text-blue-600 text-lg"></i>
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">الإحصائية اليومية للمستندات المنجزة والتسويات</h2>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <label for="statsDateFilter" class="text-xs font-semibold text-slate-600">تاريخ اليوم:</label>
+                        <input type="date" id="statsDateFilter" onchange="renderDashboard()" class="text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <button onclick="setStatsFilterAll()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                        عرض الإجمالي الكلي
+                    </button>
+                    <button onclick="switchTab('documents')" class="px-4 py-2 rounded-xl bg-gov-800 hover:bg-gov-700 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-sm transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>تسجيل مستند / تسوية 55 ع.ح</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">المستندات المنجزة (المعتمدة)</p>
+                            <h3 id="kpiCompletedCount" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1 tabular-nums">0</h3>
+                            <p id="kpiCompletionRate" class="text-xs text-slate-500 mt-2">نسبة الإنجاز: 0%</p>
+                        </div>
+                        <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">إجمالي تسويات 55 ع.ح المجمعة</p>
+                            <h3 id="kpiSettlements55Count" class="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1 tabular-nums">0</h3>
+                            <p id="kpiPendingCount" class="text-xs text-amber-600 font-medium mt-2">قيد المراجعة: 0 مستند</p>
+                        </div>
+                        <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">إجمالي التأثير المالي (75 ع.ح)</p>
+                            <h3 id="kpiTotalImpact" class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1 tabular-nums">0.00</h3>
+                            <p class="text-xs text-slate-500 mt-2">جنيه مصري (منصرف / تسويات)</p>
+                        </div>
+                        <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-coins"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500">أوامر الدفع والتدفقات النقدية</p>
+                            <h3 id="kpiPaymentOrdersCount" class="text-2xl sm:text-3xl font-extrabold text-purple-600 mt-1 tabular-nums">0</h3>
+                            <p id="kpiNetCashFlow" class="text-xs text-slate-500 mt-2">صافي التدفق: 0.00 ج.م</p>
+                        </div>
+                        <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts & Reviewer Productivity Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Daily Document Completion D3 Chart -->
+                <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">حركة إنجاز المستندات اليومية</h3>
+                            <p class="text-xs text-slate-500">عدد المستندات والتسويات المنتهية موزعة حسب التاريخ</p>
+                        </div>
+                        <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-semibold">تحديث لحظي</span>
+                    </div>
+                    <div id="dailyChartContainer" class="w-full h-64"></div>
+                </div>
+
+                <!-- Reviewer Performance Summary Table -->
+                <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">إحصائية إنجاز المراجعين</h3>
+                            <p class="text-xs text-slate-500">توزيع المستندات المنجزة وأرقام 55 ع.ح حسب المراجع</p>
+                        </div>
+                        <i class="fa-solid fa-user-check text-blue-600"></i>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar flex-1">
+                        <table class="w-full text-right text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                    <th class="py-2.5 px-3 font-bold">اسم المراجع</th>
+                                    <th class="py-2.5 px-2 font-bold text-center">منجز</th>
+                                    <th class="py-2.5 px-2 font-bold text-center">معلق</th>
+                                    <th class="py-2.5 px-3 font-bold text-left">إجمالي القيمة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewerStatsBody" class="divide-y divide-slate-100">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: DOCUMENTS & 55 ع.ح SETTLEMENTS ENTRY & REGISTRY    -->
+        <!-- ========================================================= -->
+        <section id="tab-documents" class="tab-panel hidden animate-fade-in space-y-6">
+            <!-- Entry Form Card -->
+            <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                            <i class="fa-solid fa-file-signature"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-800">تسجيل مستند صرف أو إذن تسوية (55 ع.ح)</h2>
+                            <p class="text-xs text-slate-500">يتم ترحيل التأثير المحاسبي تلقائياً إلى استمارة 75 ع.ح وربطه بأمر الدفع والتدفقات النقدية</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="resetDocForm()" class="text-xs text-slate-500 hover:text-slate-800 underline">إعادة تعيين الحقول</button>
+                </div>
+
+                <form id="documentForm" onsubmit="handleDocumentSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input type="hidden" id="editDocId" value="">
+
+                    <!-- نوع المستند -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">نوع المستند <span class="text-rose-500">*</span></label>
+                        <select id="docType" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="إذن تسوية 55 ع.ح">إذن تسوية 55 ع.ح</option>
+                            <option value="استمارة صرف 50 ع.ح">استمارة صرف 50 ع.ح</option>
+                            <option value="استمارة مرتبات 132 ع.ح">استمارة مرتبات 132 ع.ح</option>
+                            <option value="قيد تسوية عهد / سلف">قيد تسوية عهد / سلف</option>
+                        </select>
+                    </div>
+
+                    <!-- رقم استمارة 55 ع.ح -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">رقم استمارة 55 ع.ح / القيد <span class="text-rose-500">*</span></label>
+                        <input type="text" id="form55Number" required placeholder="مثال: 55-2026/425" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- اسم المراجع -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المراجع المختص <span class="text-rose-500">*</span></label>
+                        <input type="text" id="reviewerName" list="reviewersList" required placeholder="اختر أو اكتب اسم المراجع" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <datalist id="reviewersList">
+                            <option value="أ. محمد ماريه">
+                            <option value="أ. أحمد عبد الرحمن">
+                            <option value="أ. سارة محمود">
+                            <option value="أ. خالد إبراهيم">
+                            <option value="أ. منى السيد">
+                        </datalist>
+                    </div>
+
+                    <!-- التاريخ -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">تاريخ المستند / الإنجاز <span class="text-rose-500">*</span></label>
+                        <input type="date" id="docDate" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- البند المحاسبي في استمارة 75 ع.ح -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">البند المحاسبي المؤثر في استمارة 75 ع.ح <span class="text-rose-500">*</span></label>
+                        <select id="form75AccountCode" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <!-- Populated dynamically from form75Accounts -->
+                        </select>
+                    </div>
+
+                    <!-- طبيعة التأثير -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">طبيعة التأثير (75 ع.ح) <span class="text-rose-500">*</span></label>
+                        <select id="impactDirection" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="debit">منصرف / مدين (إضافة للمنصرف)</option>
+                            <option value="credit">محصل / دائن / استقطاع (إضافة للدائن)</option>
+                        </select>
+                    </div>
+
+                    <!-- المبلغ بالجنيه -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">المبلغ (ج.م) <span class="text-rose-500">*</span></label>
+                        <input type="number" id="docAmount" step="0.01" min="0.01" required placeholder="0.00" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- رقم أمر الدفع الإلكتروني -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">رقم أمر الدفع الإلكتروني (GPS)</label>
+                        <input type="text" id="paymentOrderNumber" placeholder="مثال: PO-992041" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- بند استمارة التدفقات النقدية -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">بند استمارة التدفقات النقدية</label>
+                        <select id="cashFlowCategory" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="تدفقات تشغيلية - مدفوعات أجور ومستلزمات">تدفقات تشغيلية - مدفوعات أجور ومستلزمات</option>
+                            <option value="تدفقات تشغيلية - متحصلات وإيرادات">تدفقات تشغيلية - متحصلات وإيرادات</option>
+                            <option value="تدفقات استثمارية - شراء أصول غير مالية">تدفقات استثمارية - شراء أصول غير مالية</option>
+                            <option value="تدفقات تمويلية - تسويات وحسابات جارية">تدفقات تمويلية - تسويات وحسابات جارية</option>
+                        </select>
+                    </div>
+
+                    <!-- رقم مرجع التدفقات النقدية -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">رقم استمارة / بند التدفقات</label>
+                        <input type="text" id="cashFlowRef" placeholder="مثال: CF-112" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- حالة الإنجاز -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">حالة المستند <span class="text-rose-500">*</span></label>
+                        <select id="docStatus" required class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="completed">تم الانتهاء والترحيل (منجز)</option>
+                            <option value="review">قيد المراجعة الفنية</option>
+                        </select>
+                    </div>
+
+                    <!-- بيان / ملاحظات -->
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">بيان المستند / موضوع التسوية</label>
+                        <input type="text" id="docNotes" placeholder="وصف مختصر للمعاملة المالية أو الجهة المستفيدة..." class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex items-end">
+                        <button type="submit" id="submitDocBtn" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-check-circle"></i>
+                            <span>حفظ وترحيل لـ 75 ع.ح</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Registered Documents & Settlements Table -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">سجل المستندات والتسويات المجمعة بالوحدة الحسابية</h3>
+                        <p class="text-xs text-slate-500">يمكنك تصفية السجل حسب المراجع أو رقم 55 ع.ح أو حالة الإنجاز</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="text" id="docSearchInput" oninput="renderDocumentsTable()" placeholder="بحث برقم 55 ع.ح، المراجع، أمر الدفع..." class="text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none w-56 sm:w-64">
+                        <select id="docStatusFilter" onchange="renderDocumentsTable()" class="text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none">
+                            <option value="all">جميع الحالات</option>
+                            <option value="completed">المنجزة فقط</option>
+                            <option value="review">قيد المراجعة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-xs sm:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">رقم 55 ع.ح</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">التاريخ</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">نوع المستند</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">المراجع</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">البند في 75 ع.ح</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">المبلغ (ج.م)</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">أمر الدفع</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">التدفقات النقدية</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap text-center">الحالة</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentsTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: FORM 75 ع.ح (ACCOUNTING IMPACT MATRIX)             -->
+        <!-- ========================================================= -->
+        <section id="tab-form75" class="tab-panel hidden animate-fade-in space-y-6">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-gov-900 text-white text-xs font-bold px-2.5 py-1 rounded-lg">نموذج رقم 75 ع.ح</span>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-800">كشف الحسابات والتأثيرات المحاسبية المجمعة (استمارة 75 ع.ح)</h2>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">يوضح الأرصدة الدفترية وحركة التأثير الناتجة عن التسويات 55 ع.ح والمستندات المنتهية وربطها بالمخرجات</p>
+                    </div>
+
+                    <!-- Import Excel Form 75 ع.ح + Filter Toggle -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label class="cursor-pointer px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold flex items-center gap-2 transition">
+                            <i class="fa-solid fa-file-import"></i>
+                            <span>استيراد ملف استمارة 75 ع.ح (Excel)</span>
+                            <input type="file" id="import75FileInput" accept=".xlsx,.xls,.csv" onchange="handleImportForm75(event)" class="hidden">
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-2 rounded-xl cursor-pointer">
+                            <input type="checkbox" id="onlyCompleted75Toggle" checked onchange="renderForm75Table()" class="rounded text-emerald-600 focus:ring-emerald-500">
+                            <span>احتساب المستندات المنتهية فقط</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Summary Totals Strip for Form 75 -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-600">إجمالي التأثير المدين / المنصرف:</span>
+                        <span id="form75TotalDebitImpact" class="text-sm sm:text-base font-extrabold text-rose-700 tabular-nums">0.00 ج.م</span>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-600">إجمالي التأثير الدائن / المحصل:</span>
+                        <span id="form75TotalCreditImpact" class="text-sm sm:text-base font-extrabold text-emerald-700 tabular-nums">0.00 ج.م</span>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 flex justify-between items-center">
+                        <span class="text-xs font-bold text-blue-800">عدد البنود المتأثرة في 75 ع.ح:</span>
+                        <span id="form75ImpactedItemsCount" class="text-sm sm:text-base font-extrabold text-blue-900 tabular-nums">0 بند</span>
+                    </div>
+                </div>
+
+                <!-- Form 75 ع.ح Comprehensive Table -->
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-xs sm:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-gov-900 text-white">
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">كود الحساب</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">البند المحاسبي (استمارة 75 ع.ح)</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">الاعتماد / الرصيد السابق</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap bg-rose-950/60">تأثير مدين / منصرف (+)</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap bg-emerald-950/60">تأثير دائن / محصل (+)</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">الرصيد المعدل الحالي</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">أرقام 55 ع.ح المؤثرة</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">المراجعون</th>
+                                <th class="py-3 px-3 font-bold whitespace-nowrap">أوامر الدفع المرتبطة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="form75TableBody" class="divide-y divide-slate-200">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 4: OUTPUTS LINKAGE (PAYMENT ORDERS & CASH FLOW)       -->
+        <!-- ========================================================= -->
+        <section id="tab-outputs" class="tab-panel hidden animate-fade-in space-y-6">
+            <!-- Cash Flow Statement Summary Card (استمارة التدفقات النقدية) -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                            <i class="fa-solid fa-money-bill-trend-up"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-slate-800">ملخص استمارة التدفقات النقدية المربوطة بالوحدة الحسابية</h2>
+                            <p class="text-xs text-slate-500">تجميع آلي للتدفقات النقدية الداخلة والخارجة من واقع المستندات وأوامر الدفع</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="cashFlowSummaryCards">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Full Traceability Matrix: 75 ع.ح <-> 55 ع.ح <-> Payment Orders <-> Cash Flow -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <div class="mb-4">
+                    <h3 class="text-base font-bold text-slate-800">مصفوفة الربط الشامل بين الاستمارة والمخرجات</h3>
+                    <p class="text-xs text-slate-500">تتبع كل معاملة من البند المحاسبي في 75 ع.ح مروراً برقم 55 ع.ح والمراجع وصولاً لأمر الدفع واستمارة التدفقات النقدية</p>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right text-xs sm:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800 text-white">
+                                <th class="py-3 px-3 font-bold">رقم 55 ع.ح</th>
+                                <th class="py-3 px-3 font-bold">اسم المراجع</th>
+                                <th class="py-3 px-3 font-bold">كود وبند استمارة 75 ع.ح</th>
+                                <th class="py-3 px-3 font-bold">القيمة المالية</th>
+                                <th class="py-3 px-3 font-bold bg-blue-900">رقم أمر الدفع (GPS)</th>
+                                <th class="py-3 px-3 font-bold bg-purple-900">مرجع التدفقات النقدية</th>
+                                <th class="py-3 px-3 font-bold bg-purple-900">تصنيف التدفق النقدي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="outputsTraceabilityBody" class="divide-y divide-slate-200">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 5: EXCEL SHEET PREVIEW & EMAIL DISPATCH               -->
+        <!-- ========================================================= -->
+        <section id="tab-export-email" class="tab-panel hidden animate-fade-in space-y-6">
+            
+            <!-- Email Dispatch Card (mohammedmaria@yahoo.com) -->
+            <div class="bg-gradient-to-l from-gov-900 to-gov-800 text-white rounded-2xl p-5 sm:p-6 shadow-md">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-7 space-y-3">
+                        <div class="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>وحدة إرسال التقارير المحاسبية والمخرجات</span>
+                        </div>
+                        <h2 class="text-lg sm:text-xl font-bold">إرسال نتائج التجميع واستمارة 75 ع.ح إلى البريد الإلكتروني</h2>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            يقوم النظام بتجهيز ملخص تنفيذي شامل بالإحصائية اليومية للمستندات المنجزة، أسماء المراجعين، أرقام 55 ع.ح، التأثيرات على استمارة 75 ع.ح، وأرقام أوامر الدفع والتدفقات النقدية، مع تحميل ملف الإكسيل (<span class="font-mono text-emerald-300">.xlsx</span>) تلقائياً لإرفاقه في الرسالة.
+                        </p>
+
+                        <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1">
+                                <label class="block text-xs text-slate-300 mb-1">البريد الإلكتروني المستلم:</label>
+                                <input type="email" id="targetEmailInput" value="mohammedmaria@yahoo.com" class="w-full rounded-xl bg-slate-900/80 border border-slate-600 text-white px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-400 focus:outline-none">
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <button onclick="sendReportViaEmail()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg flex items-center gap-2 transition whitespace-nowrap">
+                                    <i class="fa-solid fa-envelope-circle-check text-base"></i>
+                                    <span>تحميل الإكسيل وإرسال الإيميل</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Text Report Preview Box -->
+                    <div class="lg:col-span-5 bg-slate-950/70 border border-slate-700 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-300">معاينة نص الرسالة المرسلة:</span>
+                            <button onclick="copyEmailSummary()" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-300 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>نسخ التقرير</span>
+                            </button>
+                        </div>
+                        <textarea id="emailBodyPreview" rows="7" readonly class="w-full bg-transparent text-xs text-slate-200 font-sans leading-relaxed focus:outline-none resize-none custom-scrollbar"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive In-Browser Excel Sheet Viewer -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                            <i class="fa-solid fa-file-excel text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">معاينة شيت الإكسيل قبل التصدير (Excel Workbook Preview)</h3>
+                            <p class="text-xs text-slate-500">يحتوي الملف المصدر على 4 أوراق عمل (Sheets) منسقة بالكامل</p>
+                        </div>
+                    </div>
+                    <button onclick="exportFullExcel()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm transition">
+                        <i class="fa-solid fa-download"></i>
+                        <span>تنزيل ملف الإكسيل الآن (.xlsx)</span>
+                    </button>
+                </div>
+
+                <!-- Excel Workbook Sheet Tabs -->
+                <div class="flex overflow-x-auto gap-1 border-b border-slate-300 bg-slate-100 p-1.5 rounded-t-xl text-xs font-bold">
+                    <button onclick="switchExcelPreviewSheet('sheet75')" id="xl-tab-sheet75" class="xl-sheet-tab bg-white text-emerald-700 shadow-sm px-3.5 py-2 rounded-lg whitespace-nowrap">
+                        <i class="fa-solid fa-table mr-1"></i> 1. استمارة 75 ع.ح المجمعة
+                    </button>
+                    <button onclick="switchExcelPreviewSheet('sheet55')" id="xl-tab-sheet55" class="xl-sheet-tab text-slate-600 hover:bg-white/60 px-3.5 py-2 rounded-lg whitespace-nowrap">
+                        <i class="fa-solid fa-file-lines mr-1"></i> 2. المستندات والتسويات 55 ع.ح
+                    </button>
+                    <button onclick="switchExcelPreviewSheet('sheetOutputs')" id="xl-tab-sheetOutputs" class="xl-sheet-tab text-slate-600 hover:bg-white/60 px-3.5 py-2 rounded-lg whitespace-nowrap">
+                        <i class="fa-solid fa-link mr-1"></i> 3. أوامر الدفع والتدفقات النقدية
+                    </button>
+                    <button onclick="switchExcelPreviewSheet('sheetStats')" id="xl-tab-sheetStats" class="xl-sheet-tab text-slate-600 hover:bg-white/60 px-3.5 py-2 rounded-lg whitespace-nowrap">
+                        <i class="fa-solid fa-chart-simple mr-1"></i> 4. الإحصائية اليومية والمراجعين
+                    </button>
+                </div>
+
+                <!-- Excel Grid Container -->
+                <div class="overflow-x-auto custom-scrollbar border border-t-0 border-slate-300 rounded-b-xl bg-white max-h-[420px]" id="excelPreviewContainer">
+                    <!-- Rendered dynamically via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <p>منظومة إدارة الوحدة الحسابية واستمارة 75 ع.ح | مصممة للعمل كـ Static Web App على منصة GitHub Pages</p>
+            <p class="font-mono">Target Dispatch: mohammedmaria@yahoo.com</p>
+        </div>
+    </footer>
+
+    <!-- GitHub Deployment Guide Modal -->
+    <div id="githubModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-brands fa-github text-2xl text-slate-900"></i>
+                    <h3 class="text-lg font-bold text-slate-800">خطوات رفع وتشغيل الموقع على GitHub Pages</h3>
+                </div>
+                <button onclick="closeGithubModal()" class="text-slate-400 hover:text-slate-700 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <ol class="space-y-3 text-xs sm:text-sm text-slate-700 list-decimal list-inside leading-relaxed">
+                <li>قم بإنشاء مستودع جديد (<strong>New Repository</strong>) على حسابك في موقع <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">github.com</span> وليكن باسم <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">accounting-unit-75</span>.</li>
+                <li>احفظ كود هذه الصفحة في ملف واحد باسم <span class="font-mono bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.5 rounded">index.html</span> وارفعه داخل المستودع (Add file &rarr; Upload files).</li>
+                <li>افتح تبويب الإعدادات <strong>Settings</strong> داخل المستودع ثم اختر <strong>Pages</strong> من القائمة الجانبية.</li>
+                <li>تحت قسم <strong>Branch</strong> اختر الفرع <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">main</span> والمجلد <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded">/ (root)</span> ثم اضغط <strong>Save</strong>.</li>
+                <li>خلال دقيقة واحدة سيظهر لك رابط الموقع المباشر <span class="font-mono text-blue-600">https://username.github.io/accounting-unit-75/</span> ويعمل بكفاءة على الكمبيوتر والهاتف.</li>
+            </ol>
+            <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+                <button onclick="closeGithubModal()" class="px-4 py-2 rounded-xl bg-gov-900 text-white text-xs sm:text-sm font-bold hover:bg-gov-800 transition">فهمت، إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification (No alert() used anywhere) -->
+    <div id="toastContainer" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Application Logic -->
+    <script>
+        // =========================================================================
+        // 1. INITIAL DATA MODEL (Egyptian Government Form 75 ع.ح & 55 ع.ح Standards)
+        // =========================================================================
+        const todayStr = new Date().toISOString().split('T')[0];
+        const yesterdayDate = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+        // Standard Egyptian Government Accounting Items in Form 75 ع.ح
+        let form75Accounts = [
+            { code: "211101", name: "الباب الأول: الأجور وتعويضات العاملين", openingBalance: 4500000.00, type: "expense" },
+            { code: "212101", name: "الباب الثاني: شراء السلع والخدمات", openingBalance: 1250000.00, type: "expense" },
+            { code: "213101", name: "الباب الثالث: الفوائد", openingBalance: 180000.00, type: "expense" },
+            { code: "214101", name: "الباب الرابع: الدعم والمنح والمزايا الاجتماعية", openingBalance: 640000.00, type: "expense" },
+            { code: "215101", name: "الباب الخامس: المصروفات الأخرى", openingBalance: 320000.00, type: "expense" },
+            { code: "216101", name: "الباب السادس: شراء الأصول غير المالية (الاستثمارات)", openingBalance: 2100000.00, type: "expense" },
+            { code: "111101", name: "الإيرادات: المتحصلات والرسوم والإيرادات الأخرى", openingBalance: 950000.00, type: "revenue" },
+            { code: "311201", name: "حسابات جارية دائنة: مصلحة الضرائب والتأمينات", openingBalance: 410000.00, type: "liability" },
+            { code: "312101", name: "حسابات جارية مدينة: سلف مستديمة ومؤقتة وعهد", openingBalance: 175000.00, type: "asset" },
+            { code: "411101", name: "حساب الوحدة الحسابية المركزية (TSA)", openingBalance: 5800000.00, type: "tsa" }
+        ];
+
+        // Pre-loaded realistic documents & Form 55 ع.ح settlements
+        let documentsList = [
+            {
+                id: "DOC-101",
+                docType: "استمارة مرتبات 132 ع.ح",
+                form55Number: "55-2026/401",
+                reviewerName: "أ. محمد ماريه",
+                date: todayStr,
+                accountCode: "211101",
+                direction: "debit",
+                amount: 485200.00,
+                paymentOrder: "PO-8841201",
+                cashFlowCategory: "تدفقات تشغيلية - مدفوعات أجور ومستلزمات",
+                cashFlowRef: "CF-101",
+                status: "completed",
+                notes: "صرف مستحقات العاملين والبدلات عن الشهر الحالي"
+            },
+            {
+                id: "DOC-102",
+                docType: "إذن تسوية 55 ع.ح",
+                form55Number: "55-2026/402",
+                reviewerName: "أ. محمد ماريه",
+                date: todayStr,
+                accountCode: "311201",
+                direction: "credit",
+                amount: 64350.00,
+                paymentOrder: "PO-8841205",
+                cashFlowCategory: "تدفقات تمويلية - تسويات وحسابات جارية",
+                cashFlowRef: "CF-102",
+                status: "completed",
+                notes: "تسوية استقطاعات ضريبة كسب العمل والتأمينات الاجتماعية"
+            },
+            {
+                id: "DOC-103",
+                docType: "استمارة صرف 50 ع.ح",
+                form55Number: "55-2026/403",
+                reviewerName: "أ. سارة محمود",
+                date: todayStr,
+                accountCode: "212101",
+                direction: "debit",
+                amount: 112500.00,
+                paymentOrder: "PO-8841214",
+                cashFlowCategory: "تدفقات تشغيلية - مدفوعات أجور ومستلزمات",
+                cashFlowRef: "CF-103",
+                status: "completed",
+                notes: "سداد مستحقات توريد مستلزمات تشغيل وصيانة"
+            },
+            {
+                id: "DOC-104",
+                docType: "إذن تسوية 55 ع.ح",
+                form55Number: "55-2026/404",
+                reviewerName: "أ. أحمد عبد الرحمن",
+                date: todayStr,
+                accountCode: "111101",
+                direction: "credit",
+                amount: 95000.00,
+                paymentOrder: "PO-8841220",
+                cashFlowCategory: "تدفقات تشغيلية - متحصلات وإيرادات",
+                cashFlowRef: "CF-104",
+                status: "completed",
+                notes: "توريد متحصلات رسوم وخدمات للوحدة الحسابية"
+            },
+            {
+                id: "DOC-105",
+                docType: "استمارة صرف 50 ع.ح",
+                form55Number: "55-2026/405",
+                reviewerName: "أ. خالد إبراهيم",
+                date: todayStr,
+                accountCode: "216101",
+                direction: "debit",
+                amount: 340000.00,
+                paymentOrder: "PO-8841233",
+                cashFlowCategory: "تدفقات استثمارية - شراء أصول غير مالية",
+                cashFlowRef: "CF-105",
+                status: "review",
+                notes: "دفعة مستخلص تجهيزات وتطوير البنية التحتية (قيد المراجعة)"
+            },
+            {
+                id: "DOC-106",
+                docType: "قيد تسوية عهد / سلف",
+                form55Number: "55-2026/398",
+                reviewerName: "أ. سارة محمود",
+                date: yesterdayDate,
+                accountCode: "312101",
+                direction: "credit",
+                amount: 28400.00,
+                paymentOrder: "PO-8841189",
+                cashFlowCategory: "تدفقات تمويلية - تسويات وحسابات جارية",
+                cashFlowRef: "CF-099",
+                status: "completed",
+                notes: "استعاضة وتسوية السلفة المستديمة"
+            }
+        ];
+
+        let currentExcelSheetTab = 'sheet75';
+
+        // =========================================================================
+        // 2. UTILITY FUNCTIONS (Formatting, Toast, Safe Clipboard)
+        // =========================================================================
+        function formatMoney(num) {
+            const val = Number(num) || 0;
+            return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                info: 'bg-blue-600 text-white border-blue-500',
+                warning: 'bg-amber-600 text-white border-amber-500',
+                error: 'bg-rose-600 text-white border-rose-500'
+            };
+            const icons = {
+                success: 'fa-circle-check',
+                info: 'fa-circle-info',
+                warning: 'fa-triangle-exclamation',
+                error: 'fa-circle-xmark'
+            };
+
+            toast.className = `${colors[type] || colors.success} border px-4 py-3 rounded-xl shadow-xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 pointer-events-auto animate-fade-in`;
+            toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                toast.style.transition = 'all 0.25s ease';
+                setTimeout(() => toast.remove(), 260);
+            }, 3500);
+        }
+
+        // =========================================================================
+        // 3. TAB NAVIGATION & MODAL CONTROLS
+        // =========================================================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('active', 'border-emerald-400', 'bg-slate-800/80', 'text-white');
+                    btn.classList.remove('border-transparent', 'text-slate-300');
+                } else {
+                    btn.classList.remove('active', 'border-emerald-400', 'bg-slate-800/80', 'text-white');
+                    btn.classList.add('border-transparent', 'text-slate-300');
+                }
+            });
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'form75') renderForm75Table();
+            if (tabId === 'outputs') renderOutputsSection();
+            if (tabId === 'export-email') {
+                updateEmailPreview();
+                renderExcelPreview();
+            }
+        }
+
+        function openGithubModal() {
+            document.getElementById('githubModal').classList.remove('hidden');
+        }
+
+        function closeGithubModal() {
+            document.getElementById('githubModal').classList.add('hidden');
+        }
+
+        function updateUnitMeta() {
+            updateEmailPreview();
+            showToast('تم تحديث بيانات الوحدة الحسابية والفترة المالية', 'info');
+        }
+
+        // =========================================================================
+        // 4. CORE COMPUTATION ENGINE (Form 75 ع.ح Aggregations)
+        // =========================================================================
+        function computeForm75Data(onlyCompleted = true) {
+            return form75Accounts.map(acc => {
+                const matchingDocs = documentsList.filter(d => 
+                    d.accountCode === acc.code && (!onlyCompleted || d.status === 'completed')
+                );
+
+                let debitImpact = 0;
+                let creditImpact = 0;
+                const form55Set = new Set();
+                const reviewersSet = new Set();
+                const paymentOrdersSet = new Set();
+                const cashFlowRefsSet = new Set();
+
+                matchingDocs.forEach(doc => {
+                    if (doc.direction === 'debit') debitImpact += doc.amount;
+                    else creditImpact += doc.amount;
+
+                    if (doc.form55Number) form55Set.add(doc.form55Number);
+                    if (doc.reviewerName) reviewersSet.add(doc.reviewerName);
+                    if (doc.paymentOrder) paymentOrdersSet.add(doc.paymentOrder);
+                    if (doc.cashFlowRef) cashFlowRefsSet.add(doc.cashFlowRef);
+                });
+
+                // Calculate adjusted balance based on account nature
+                let adjustedBalance = acc.openingBalance;
+                if (acc.type === 'expense' || acc.type === 'asset') {
+                    adjustedBalance = acc.openingBalance + debitImpact - creditImpact;
+                } else {
+                    adjustedBalance = acc.openingBalance + creditImpact - debitImpact;
+                }
+
+                return {
+                    ...acc,
+                    debitImpact,
+                    creditImpact,
+                    adjustedBalance,
+                    form55Numbers: Array.from(form55Set),
+                    reviewers: Array.from(reviewersSet),
+                    paymentOrders: Array.from(paymentOrdersSet),
+                    cashFlowRefs: Array.from(cashFlowRefsSet),
+                    docCount: matchingDocs.length
+                };
+            });
+        }
+
+        // =========================================================================
+        // 5. DASHBOARD & DAILY STATISTICS RENDERER (With D3.js)
+        // =========================================================================
+        function setStatsFilterAll() {
+            document.getElementById('statsDateFilter').value = '';
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const selectedDate = document.getElementById('statsDateFilter').value;
+            const filteredDocs = selectedDate 
+                ? documentsList.filter(d => d.date === selectedDate)
+                : documentsList;
+
+            const completedDocs = filteredDocs.filter(d => d.status === 'completed');
+            const pendingDocs = filteredDocs.filter(d => d.status !== 'completed');
+            const totalImpact = completedDocs.reduce((sum, d) => sum + d.amount, 0);
+            const completionRate = filteredDocs.length > 0 
+                ? Math.round((completedDocs.length / filteredDocs.length) * 100) 
+                : 0;
+
+            const uniquePOs = new Set(completedDocs.map(d => d.paymentOrder).filter(Boolean));
+            const inflow = completedDocs.filter(d => d.direction === 'credit').reduce((s, d) => s + d.amount, 0);
+            const outflow = completedDocs.filter(d => d.direction === 'debit').reduce((s, d) => s + d.amount, 0);
+            const netCashFlow = inflow - outflow;
+
+            // Update KPI Cards
+            document.getElementById('kpiCompletedCount').textContent = completedDocs.length;
+            document.getElementById('kpiCompletionRate').textContent = `نسبة الإنجاز: ${completionRate}% (من إجمالي ${filteredDocs.length} مستند)`;
+            document.getElementById('kpiSettlements55Count').textContent = filteredDocs.length;
+            document.getElementById('kpiPendingCount').textContent = `قيد المراجعة: ${pendingDocs.length} مستند`;
+            document.getElementById('kpiTotalImpact').textContent = formatMoney(totalImpact);
+            document.getElementById('kpiPaymentOrdersCount').textContent = uniquePOs.size;
+            document.getElementById('kpiNetCashFlow').textContent = `صافي التدفق: ${netCashFlow >= 0 ? '+' : ''}${formatMoney(netCashFlow)} ج.م`;
+            document.getElementById('navDocCount').textContent = documentsList.length;
+
+            // Render Reviewer Productivity Table
+            const reviewerMap = {};
+            filteredDocs.forEach(doc => {
+                const name = doc.reviewerName || 'غير محدد';
+                if (!reviewerMap[name]) {
+                    reviewerMap[name] = { name, completed: 0, pending: 0, totalAmount: 0 };
+                }
+                if (doc.status === 'completed') {
+                    reviewerMap[name].completed += 1;
+                    reviewerMap[name].totalAmount += doc.amount;
+                } else {
+                    reviewerMap[name].pending += 1;
+                }
+            });
+
+            const reviewerBody = document.getElementById('reviewerStatsBody');
+            const reviewersArr = Object.values(reviewerMap).sort((a, b) => b.completed - a.completed);
+
+            if (reviewersArr.length === 0) {
+                reviewerBody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">لا توجد مستندات مسجلة في هذا التاريخ</td></tr>`;
+            } else {
+                reviewerBody.innerHTML = reviewersArr.map(r => `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-2.5 px-3 font-bold text-slate-800">${r.name}</td>
+                        <td class="py-2.5 px-2 text-center">
+                            <span class="inline-block bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-xs tabular-nums">${r.completed}</span>
+                        </td>
+                        <td class="py-2.5 px-2 text-center">
+                            <span class="inline-block bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-xs tabular-nums">${r.pending}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-left font-semibold text-slate-700 tabular-nums">${formatMoney(r.totalAmount)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Render D3.js Daily Chart
+            renderDailyD3Chart();
+        }
+
+        function renderDailyD3Chart() {
+            const container = document.getElementById('dailyChartContainer');
+            container.innerHTML = '';
+
+            // Group all documents by date
+            const dateGroups = {};
+            documentsList.forEach(d => {
+                if (!dateGroups[d.date]) {
+                    dateGroups[d.date] = { date: d.date, completed: 0, review: 0 };
+                }
+                if (d.status === 'completed') dateGroups[d.date].completed += 1;
+                else dateGroups[d.date].review += 1;
+            });
+
+            const data = Object.values(dateGroups).sort((a, b) => a.date.localeCompare(b.date));
+            if (data.length === 0) {
+                container.innerHTML = `<div class="h-full flex items-center justify-center text-slate-400 text-sm">لا توجد بيانات للعرض</div>`;
+                return;
+            }
+
+            const width = container.clientWidth || 500;
+            const height = container.clientHeight || 250;
+            const margin = { top: 20, right: 20, bottom: 35, left: 35 };
+            const innerW = width - margin.left - margin.right;
+            const innerH = height - margin.top - margin.bottom;
+
+            const svg = d3.select('#dailyChartContainer')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const x0 = d3.scaleBand()
+                .domain(data.map(d => d.date))
+                .range([0, innerW])
+                .paddingInner(0.35);
+
+            const x1 = d3.scaleBand()
+                .domain(['completed', 'review'])
+                .range([0, x0.bandwidth()])
+                .padding(0.1);
+
+            const maxVal = d3.max(data, d => Math.max(d.completed, d.review)) || 5;
+            const y = d3.scaleLinear()
+                .domain([0, maxVal + 1])
+                .nice()
+                .range([innerH, 0]);
+
+            // Grid lines
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(y).ticks(5).tickSize(-innerW).tickFormat(''))
+                .selectAll('line')
+                .attr('stroke', '#e2e8f0')
+                .attr('stroke-dasharray', '3,3');
+            g.selectAll('.domain').remove();
+
+            // X Axis
+            g.append('g')
+                .attr('transform', `translate(0,${innerH})`)
+                .call(d3.axisBottom(x0))
+                .selectAll('text')
+                .style('font-family', 'Inter, sans-serif')
+                .style('font-size', '11px')
+                .style('fill', '#475569');
+
+            // Y Axis
+            g.append('g')
+                .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('d')))
+                .selectAll('text')
+                .style('font-family', 'Inter, sans-serif')
+                .style('font-size', '11px')
+                .style('fill', '#475569');
+
+            // Bars
+            const dateGroup = g.selectAll('.date-group')
+                .data(data)
+                .enter()
+                .append('g')
+                .attr('transform', d => `translate(${x0(d.date)},0)`);
+
+            // Completed bars
+            dateGroup.append('rect')
+                .attr('x', x1('completed'))
+                .attr('y', d => y(d.completed))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => innerH - y(d.completed))
+                .attr('rx', 6)
+                .attr('fill', '#059669');
+
+            // Review bars
+            dateGroup.append('rect')
+                .attr('x', x1('review'))
+                .attr('y', d => y(d.review))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => innerH - y(d.review))
+                .attr('rx', 6)
+                .attr('fill', '#d97706');
+
+            // Value labels
+            dateGroup.append('text')
+                .attr('x', x1('completed') + x1.bandwidth() / 2)
+                .attr('y', d => y(d.completed) - 5)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '11px')
+                .style('font-weight', 'bold')
+                .style('fill', '#065f46')
+                .text(d => d.completed > 0 ? d.completed : '');
+        }
+
+        // =========================================================================
+        // 6. DOCUMENTS & SETTLEMENTS (55 ع.ح) CRUD OPERATIONS
+        // =========================================================================
+        function populateAccountDropdown() {
+            const select = document.getElementById('form75AccountCode');
+            select.innerHTML = form75Accounts.map(acc => 
+                `<option value="${acc.code}">[${acc.code}] ${acc.name}</option>`
+            ).join('');
+        }
+
+        function handleDocumentSubmit(event) {
+            event.preventDefault();
+            const editId = document.getElementById('editDocId').value;
+
+            const docPayload = {
+                id: editId || `DOC-${Date.now().toString().slice(-5)}`,
+                docType: document.getElementById('docType').value,
+                form55Number: document.getElementById('form55Number').value.trim(),
+                reviewerName: document.getElementById('reviewerName').value.trim(),
+                date: document.getElementById('docDate').value,
+                accountCode: document.getElementById('form75AccountCode').value,
+                direction: document.getElementById('impactDirection').value,
+                amount: parseFloat(document.getElementById('docAmount').value) || 0,
+                paymentOrder: document.getElementById('paymentOrderNumber').value.trim() || 'غير مربوط',
+                cashFlowCategory: document.getElementById('cashFlowCategory').value,
+                cashFlowRef: document.getElementById('cashFlowRef').value.trim() || 'CF-عام',
+                status: document.getElementById('docStatus').value,
+                notes: document.getElementById('docNotes').value.trim()
+            };
+
+            if (editId) {
+                const idx = documentsList.findIndex(d => d.id === editId);
+                if (idx !== -1) documentsList[idx] = docPayload;
+                showToast(`تم تحديث المستند رقم ${docPayload.form55Number} وترحيل الأثر`, 'success');
+            } else {
+                documentsList.unshift(docPayload);
+                showToast(`تم إضافة المستند رقم ${docPayload.form55Number} وتحديث استمارة 75 ع.ح`, 'success');
+            }
+
+            resetDocForm();
+            refreshAllViews();
+        }
+
+        function resetDocForm() {
+            document.getElementById('documentForm').reset();
+            document.getElementById('editDocId').value = '';
+            document.getElementById('docDate').value = todayStr;
+            document.getElementById('submitDocBtn').innerHTML = `<i class="fa-solid fa-check-circle"></i><span>حفظ وترحيل لـ 75 ع.ح</span>`;
+        }
+
+        function editDocument(id) {
+            const doc = documentsList.find(d => d.id === id);
+            if (!doc) return;
+
+            document.getElementById('editDocId').value = doc.id;
+            document.getElementById('docType').value = doc.docType;
+            document.getElementById('form55Number').value = doc.form55Number;
+            document.getElementById('reviewerName').value = doc.reviewerName;
+            document.getElementById('docDate').value = doc.date;
+            document.getElementById('form75AccountCode').value = doc.accountCode;
+            document.getElementById('impactDirection').value = doc.direction;
+            document.getElementById('docAmount').value = doc.amount;
+            document.getElementById('paymentOrderNumber').value = doc.paymentOrder === 'غير مربوط' ? '' : doc.paymentOrder;
+            document.getElementById('cashFlowCategory').value = doc.cashFlowCategory;
+            document.getElementById('cashFlowRef').value = doc.cashFlowRef;
+            document.getElementById('docStatus').value = doc.status;
+            document.getElementById('docNotes').value = doc.notes;
+
+            document.getElementById('submitDocBtn').innerHTML = `<i class="fa-solid fa-pen-to-square"></i><span>حفظ التعديلات</span>`;
+            document.getElementById('documentForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function toggleDocumentStatus(id) {
+            const doc = documentsList.find(d => d.id === id);
+            if (!doc) return;
+            doc.status = doc.status === 'completed' ? 'review' : 'completed';
+            showToast(`تم تغيير حالة المستند ${doc.form55Number} إلى: ${doc.status === 'completed' ? 'تم الانتهاء' : 'قيد المراجعة'}`, 'info');
+            refreshAllViews();
+        }
+
+        function deleteDocument(id) {
+            const doc = documentsList.find(d => d.id === id);
+            documentsList = documentsList.filter(d => d.id !== id);
+            showToast(`تم حذف المستند ${doc ? doc.form55Number : ''} من السجل`, 'warning');
+            refreshAllViews();
+        }
+
+        function renderDocumentsTable() {
+            const query = (document.getElementById('docSearchInput').value || '').toLowerCase();
+            const statusFilter = document.getElementById('docStatusFilter').value;
+
+            const filtered = documentsList.filter(doc => {
+                const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
+                const acc = form75Accounts.find(a => a.code === doc.accountCode);
+                const accName = acc ? acc.name : '';
+                const searchBlob = `${doc.form55Number} ${doc.reviewerName} ${doc.paymentOrder} ${doc.docType} ${accName} ${doc.cashFlowRef}`.toLowerCase();
+                return matchesStatus && searchBlob.includes(query);
+            });
+
+            const tbody = document.getElementById('documentsTableBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-400">لا توجد مستندات مطابقة لمعايير البحث</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(doc => {
+                const acc = form75Accounts.find(a => a.code === doc.accountCode);
+                const isCompleted = doc.status === 'completed';
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-3 font-mono font-bold text-blue-700 whitespace-nowrap">${doc.form55Number}</td>
+                        <td class="py-3 px-3 font-mono text-slate-600 whitespace-nowrap">${doc.date}</td>
+                        <td class="py-3 px-3 font-semibold text-slate-800 whitespace-nowrap">${doc.docType}</td>
+                        <td class="py-3 px-3 font-bold text-slate-700 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-lg">
+                                <i class="fa-solid fa-user text-slate-400 text-[10px]"></i> ${doc.reviewerName}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-slate-700 max-w-xs truncate" title="${acc ? acc.name : doc.accountCode}">
+                            <span class="font-mono text-xs text-slate-500">[${doc.accountCode}]</span> ${acc ? acc.name : ''}
+                        </td>
+                        <td class="py-3 px-3 font-bold tabular-nums whitespace-nowrap ${doc.direction === 'debit' ? 'text-rose-700' : 'text-emerald-700'}">
+                            ${doc.direction === 'debit' ? 'منصرف:' : 'دائن:'} ${formatMoney(doc.amount)}
+                        </td>
+                        <td class="py-3 px-3 font-mono text-xs whitespace-nowrap">
+                            <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md font-semibold">${doc.paymentOrder}</span>
+                        </td>
+                        <td class="py-3 px-3 text-xs whitespace-nowrap">
+                            <span class="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-mono font-semibold">${doc.cashFlowRef}</span>
+                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <button onclick="toggleDocumentStatus('${doc.id}')" title="اضغط لتغيير الحالة" class="px-2.5 py-1 rounded-full text-xs font-bold transition ${isCompleted ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}">
+                                ${isCompleted ? '✓ تم الانتهاء' : '⏳ قيد المراجعة'}
+                            </button>
+                        </td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                <button onclick="editDocument('${doc.id}')" title="تعديل" class="p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="deleteDocument('${doc.id}')" title="حذف" class="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 7. FORM 75 ع.ح MATRIX & EXCEL IMPORT
+        // =========================================================================
+        function renderForm75Table() {
+            const onlyCompleted = document.getElementById('onlyCompleted75Toggle').checked;
+            const computed = computeForm75Data(onlyCompleted);
+
+            let totalDebit = 0;
+            let totalCredit = 0;
+            let impactedCount = 0;
+
+            const tbody = document.getElementById('form75TableBody');
+            tbody.innerHTML = computed.map(item => {
+                totalDebit += item.debitImpact;
+                totalCredit += item.creditImpact;
+                const hasImpact = item.debitImpact > 0 || item.creditImpact > 0;
+                if (hasImpact) impactedCount++;
+
+                return `
+                    <tr class="${hasImpact ? 'bg-blue-50/40' : 'hover:bg-slate-50'} transition">
+                        <td class="py-3 px-3 font-mono font-bold text-slate-800 whitespace-nowrap">${item.code}</td>
+                        <td class="py-3 px-3 font-bold text-slate-800">${item.name}</td>
+                        <td class="py-3 px-3 tabular-nums text-slate-600 whitespace-nowrap">${formatMoney(item.openingBalance)}</td>
+                        <td class="py-3 px-3 tabular-nums font-bold whitespace-nowrap ${item.debitImpact > 0 ? 'text-rose-700 bg-rose-50/60' : 'text-slate-400'}">
+                            ${item.debitImpact > 0 ? '+' + formatMoney(item.debitImpact) : '0.00'}
+                        </td>
+                        <td class="py-3 px-3 tabular-nums font-bold whitespace-nowrap ${item.creditImpact > 0 ? 'text-emerald-700 bg-emerald-50/60' : 'text-slate-400'}">
+                            ${item.creditImpact > 0 ? '+' + formatMoney(item.creditImpact) : '0.00'}
+                        </td>
+                        <td class="py-3 px-3 tabular-nums font-extrabold text-gov-900 whitespace-nowrap">${formatMoney(item.adjustedBalance)}</td>
+                        <td class="py-3 px-3">
+                            <div class="flex flex-wrap gap-1">
+                                ${item.form55Numbers.length > 0 
+                                    ? item.form55Numbers.map(n => `<span class="font-mono text-[11px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">${n}</span>`).join('')
+                                    : '<span class="text-slate-400 text-xs">—</span>'}
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-xs text-slate-700">
+                            ${item.reviewers.length > 0 ? item.reviewers.join('، ') : '<span class="text-slate-400">—</span>'}
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="flex flex-wrap gap-1">
+                                ${item.paymentOrders.length > 0 
+                                    ? item.paymentOrders.map(po => `<span class="font-mono text-[11px] bg-blue-100 text-blue-900 px-2 py-0.5 rounded font-bold">${po}</span>`).join('')
+                                    : '<span class="text-slate-400 text-xs">—</span>'}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('form75TotalDebitImpact').textContent = `${formatMoney(totalDebit)} ج.م`;
+            document.getElementById('form75TotalCreditImpact').textContent = `${formatMoney(totalCredit)} ج.م`;
+            document.getElementById('form75ImpactedItemsCount').textContent = `${impactedCount} بند متأثر`;
+        }
+
+        // Import user's actual Form 75 ع.ح Excel file
+        function handleImportForm75(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                    let importedCount = 0;
+                    rows.forEach((row, idx) => {
+                        if (idx === 0 || !row || row.length < 2) return;
+                        const code = String(row[0] || '').trim();
+                        const name = String(row[1] || '').trim();
+                        const balance = parseFloat(String(row[2] || '0').replace(/,/g, '')) || 0;
+
+                        if (code && name && !code.includes('كود')) {
+                            const existing = form75Accounts.find(a => a.code === code);
+                            if (existing) {
+                                existing.name = name;
+                                if (balance > 0) existing.openingBalance = balance;
+                            } else {
+                                form75Accounts.push({
+                                    code,
+                                    name,
+                                    openingBalance: balance,
+                                    type: 'expense'
+                                });
+                            }
+                            importedCount++;
+                        }
+                    });
+
+                    populateAccountDropdown();
+                    refreshAllViews();
+                    showToast(`تم استيراد وتحديث ${importedCount} بند من ملف استمارة 75 ع.ح بنجاح`, 'success');
+                } catch (err) {
+                    showToast('تعذر قراءة ملف الإكسيل. تأكد من أن الأعمدة تبدأ بـ (كود الحساب، اسم البند، الرصيد)', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // =========================================================================
+        // 8. OUTPUTS TRACEABILITY (PAYMENT ORDERS & CASH FLOW STATEMENT)
+        // =========================================================================
+        function renderOutputsSection() {
+            const completedDocs = documentsList.filter(d => d.status === 'completed');
+
+            // Group by Cash Flow Category
+            const categories = [
+                "تدفقات تشغيلية - مدفوعات أجور ومستلزمات",
+                "تدفقات تشغيلية - متحصلات وإيرادات",
+                "تدفقات استثمارية - شراء أصول غير مالية",
+                "تدفقات تمويلية - تسويات وحسابات جارية"
+            ];
+
+            const cardsContainer = document.getElementById('cashFlowSummaryCards');
+            cardsContainer.innerHTML = categories.map(cat => {
+                const items = completedDocs.filter(d => d.cashFlowCategory === cat);
+                const total = items.reduce((s, d) => s + d.amount, 0);
+                const isInflow = cat.includes('متحصلات') || cat.includes('تمويلية');
+                return `
+                    <div class="rounded-xl border border-slate-200 p-4 bg-slate-50/70">
+                        <p class="text-xs font-bold text-slate-600 mb-1">${cat}</p>
+                        <p class="text-lg font-extrabold tabular-nums ${isInflow ? 'text-emerald-700' : 'text-rose-700'}">
+                            ${formatMoney(total)} <span class="text-xs font-normal">ج.م</span>
+                        </p>
+                        <p class="text-[11px] text-slate-500 mt-1">عدد العمليات المربوطة: ${items.length}</p>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Traceability Table
+            const tbody = document.getElementById('outputsTraceabilityBody');
+            tbody.innerHTML = documentsList.map(doc => {
+                const acc = form75Accounts.find(a => a.code === doc.accountCode);
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-3 font-mono font-bold text-amber-800">${doc.form55Number}</td>
+                        <td class="py-3 px-3 font-bold text-slate-800">${doc.reviewerName}</td>
+                        <td class="py-3 px-3 text-slate-700">
+                            <span class="font-mono text-xs font-bold text-slate-500">[${doc.accountCode}]</span> ${acc ? acc.name : ''}
+                        </td>
+                        <td class="py-3 px-3 font-bold tabular-nums ${doc.direction === 'debit' ? 'text-rose-700' : 'text-emerald-700'}">
+                            ${formatMoney(doc.amount)} ج.م
+                        </td>
+                        <td class="py-3 px-3 font-mono font-bold text-blue-800 bg-blue-50/40">${doc.paymentOrder}</td>
+                        <td class="py-3 px-3 font-mono font-bold text-purple-800 bg-purple-50/40">${doc.cashFlowRef}</td>
+                        <td class="py-3 px-3 text-xs font-semibold text-purple-900 bg-purple-50/40">${doc.cashFlowCategory}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =========================================================================
+        // 9. EXCEL SHEET PREVIEW & MULTI-SHEET .XLSX GENERATOR
+        // =========================================================================
+        function switchExcelPreviewSheet(sheetKey) {
+            currentExcelSheetTab = sheetKey;
+            document.querySelectorAll('.xl-sheet-tab').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-emerald-700', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+            const activeBtn = document.getElementById(`xl-tab-${sheetKey}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-emerald-700', 'shadow-sm');
+                activeBtn.classList.remove('text-slate-600');
+            }
+            renderExcelPreview();
+        }
+
+        function renderExcelPreview() {
+            const container = document.getElementById('excelPreviewContainer');
+            const computed75 = computeForm75Data(true);
+
+            if (currentExcelSheetTab === 'sheet75') {
+                container.innerHTML = `
+                    <table class="w-full text-right text-xs excel-table border-collapse">
+                        <thead>
+                            <tr class="excel-header text-slate-800 font-bold">
+                                <th class="p-2">كود الحساب</th>
+                                <th class="p-2">البند المحاسبي (استمارة 75 ع.ح)</th>
+                                <th class="p-2">الرصيد السابق</th>
+                                <th class="p-2">تأثير مدين / منصرف</th>
+                                <th class="p-2">تأثير دائن / محصل</th>
+                                <th class="p-2">الرصيد المعدل</th>
+                                <th class="p-2">أرقام 55 ع.ح</th>
+                                <th class="p-2">المراجعون</th>
+                                <th class="p-2">أوامر الدفع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${computed75.map(r => `
+                                <tr class="hover:bg-emerald-50/40">
+                                    <td class="p-2 font-mono">${r.code}</td>
+                                    <td class="p-2 font-semibold">${r.name}</td>
+                                    <td class="p-2 tabular-nums">${formatMoney(r.openingBalance)}</td>
+                                    <td class="p-2 tabular-nums text-rose-700 font-bold">${formatMoney(r.debitImpact)}</td>
+                                    <td class="p-2 tabular-nums text-emerald-700 font-bold">${formatMoney(r.creditImpact)}</td>
+                                    <td class="p-2 tabular-nums font-bold">${formatMoney(r.adjustedBalance)}</td>
+                                    <td class="p-2 font-mono">${r.form55Numbers.join(', ') || '-'}</td>
+                                    <td class="p-2">${r.reviewers.join(', ') || '-'}</td>
+                                    <td class="p-2 font-mono">${r.paymentOrders.join(', ') || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (currentExcelSheetTab === 'sheet55') {
+                container.innerHTML = `
+                    <table class="w-full text-right text-xs excel-table border-collapse">
+                        <thead>
+                            <tr class="excel-header text-slate-800 font-bold">
+                                <th class="p-2">رقم 55 ع.ح</th>
+                                <th class="p-2">التاريخ</th>
+                                <th class="p-2">نوع المستند</th>
+                                <th class="p-2">اسم المراجع</th>
+                                <th class="p-2">كود 75 ع.ح</th>
+                                <th class="p-2">الطبيعة</th>
+                                <th class="p-2">المبلغ</th>
+                                <th class="p-2">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${documentsList.map(d => `
+                                <tr>
+                                    <td class="p-2 font-mono font-bold">${d.form55Number}</td>
+                                    <td class="p-2 font-mono">${d.date}</td>
+                                    <td class="p-2">${d.docType}</td>
+                                    <td class="p-2 font-bold">${d.reviewerName}</td>
+                                    <td class="p-2 font-mono">${d.accountCode}</td>
+                                    <td class="p-2">${d.direction === 'debit' ? 'مدين / منصرف' : 'دائن / محصل'}</td>
+                                    <td class="p-2 tabular-nums font-bold">${formatMoney(d.amount)}</td>
+                                    <td class="p-2">${d.status === 'completed' ? 'منجز' : 'قيد المراجعة'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else if (currentExcelSheetTab === 'sheetOutputs') {
+                container.innerHTML = `
+                    <table class="w-full text-right text-xs excel-table border-collapse">
+                        <thead>
+                            <tr class="excel-header text-slate-800 font-bold">
+                                <th class="p-2">رقم 55 ع.ح</th>
+                                <th class="p-2">كود 75 ع.ح</th>
+                                <th class="p-2">رقم أمر الدفع</th>
+                                <th class="p-2">مرجع التدفقات النقدية</th>
+                                <th class="p-2">بند التدفقات النقدية</th>
+                                <th class="p-2">القيمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${documentsList.map(d => `
+                                <tr>
+                                    <td class="p-2 font-mono">${d.form55Number}</td>
+                                    <td class="p-2 font-mono">${d.accountCode}</td>
+                                    <td class="p-2 font-mono font-bold text-blue-700">${d.paymentOrder}</td>
+                                    <td class="p-2 font-mono font-bold text-purple-700">${d.cashFlowRef}</td>
+                                    <td class="p-2">${d.cashFlowCategory}</td>
+                                    <td class="p-2 tabular-nums font-bold">${formatMoney(d.amount)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                // Daily Stats & Reviewer Summary
+                const revMap = {};
+                documentsList.forEach(d => {
+                    if (!revMap[d.reviewerName]) revMap[d.reviewerName] = { name: d.reviewerName, done: 0, pending: 0, sum: 0 };
+                    if (d.status === 'completed') { revMap[d.reviewerName].done++; revMap[d.reviewerName].sum += d.amount; }
+                    else revMap[d.reviewerName].pending++;
+                });
+                container.innerHTML = `
+                    <table class="w-full text-right text-xs excel-table border-collapse">
+                        <thead>
+                            <tr class="excel-header text-slate-800 font-bold">
+                                <th class="p-2">اسم المراجع</th>
+                                <th class="p-2">عدد المستندات المنجزة</th>
+                                <th class="p-2">قيد المراجعة</th>
+                                <th class="p-2">إجمالي القيمة المعتمدة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.values(revMap).map(r => `
+                                <tr>
+                                    <td class="p-2 font-bold">${r.name}</td>
+                                    <td class="p-2 tabular-nums">${r.done}</td>
+                                    <td class="p-2 tabular-nums">${r.pending}</td>
+                                    <td class="p-2 tabular-nums font-bold">${formatMoney(r.sum)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+
+        function exportFullExcel() {
+            try {
+                const wb = XLSX.utils.book_new();
+                const computed75 = computeForm75Data(true);
+
+                // Sheet 1: Form 75 ع.ح
+                const sheet1Data = computed75.map(r => ({
+                    "كود الحساب": r.code,
+                    "البند المحاسبي (استمارة 75 ع.ح)": r.name,
+                    "الاعتماد / الرصيد السابق": r.openingBalance,
+                    "تأثير مدين / منصرف": r.debitImpact,
+                    "تأثير دائن / محصل": r.creditImpact,
+                    "الرصيد المعدل الحالي": r.adjustedBalance,
+                    "أرقام 55 ع.ح المؤثرة": r.form55Numbers.join(' | '),
+                    "أسماء المراجعين": r.reviewers.join(' | '),
+                    "أرقام أوامر الدفع": r.paymentOrders.join(' | '),
+                    "مراجع التدفقات النقدية": r.cashFlowRefs.join(' | ')
+                }));
+                const ws1 = XLSX.utils.json_to_sheet(sheet1Data);
+                ws1['!views'] = [{ rightToLeft: true }];
+                XLSX.utils.book_append_sheet(wb, ws1, "استمارة 75 ع.ح");
+
+                // Sheet 2: Documents & 55 ع.ح
+                const sheet2Data = documentsList.map(d => {
+                    const acc = form75Accounts.find(a => a.code === d.accountCode);
+                    return {
+                        "رقم استمارة 55 ع.ح": d.form55Number,
+                        "التاريخ": d.date,
+                        "نوع المستند": d.docType,
+                        "اسم المراجع": d.reviewerName,
+                        "كود البند (75 ع.ح)": d.accountCode,
+                        "اسم البند المحاسبي": acc ? acc.name : '',
+                        "طبيعة التأثير": d.direction === 'debit' ? 'مدين / منصرف' : 'دائن / محصل',
+                        "المبلغ (ج.م)": d.amount,
+                        "رقم أمر الدفع": d.paymentOrder,
+                        "مرجع التدفقات النقدية": d.cashFlowRef,
+                        "تصنيف التدفق النقدي": d.cashFlowCategory,
+                        "الحالة": d.status === 'completed' ? 'تم الانتهاء' : 'قيد المراجعة',
+                        "البيان": d.notes
+                    };
+                });
+                const ws2 = XLSX.utils.json_to_sheet(sheet2Data);
+                ws2['!views'] = [{ rightToLeft: true }];
+                XLSX.utils.book_append_sheet(wb, ws2, "المستندات والتسويات 55");
+
+                // Sheet 3: Daily Reviewer Stats
+                const revMap = {};
+                documentsList.forEach(d => {
+                    if (!revMap[d.reviewerName]) revMap[d.reviewerName] = { "اسم المراجع": d.reviewerName, "المستندات المنجزة": 0, "قيد المراجعة": 0, "إجمالي القيمة المنجزة": 0 };
+                    if (d.status === 'completed') {
+                        revMap[d.reviewerName]["المستندات المنجزة"]++;
+                        revMap[d.reviewerName]["إجمالي القيمة المنجزة"] += d.amount;
+                    } else {
+                        revMap[d.reviewerName]["قيد المراجعة"]++;
+                    }
+                });
+                const ws3 = XLSX.utils.json_to_sheet(Object.values(revMap));
+                ws3['!views'] = [{ rightToLeft: true }];
+                XLSX.utils.book_append_sheet(wb, ws3, "إحصائية المراجعين");
+
+                const fileName = `تقرير_الوحدة_الحسابية_75ع_ح_${todayStr}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                showToast(`تم تصدير ملف الإكسيل (${fileName}) بنجاح`, 'success');
+            } catch (error) {
+                showToast('حدث خطأ أثناء إنشاء ملف الإكسيل', 'error');
+            }
+        }
+
+        // =========================================================================
+        // 10. EMAIL REPORT GENERATOR & DISPATCH (mohammedmaria@yahoo.com)
+        // =========================================================================
+        function buildEmailTextReport() {
+            const unitName = document.getElementById('unitNameInput').value;
+            const period = document.getElementById('periodInput').value;
+            const completed = documentsList.filter(d => d.status === 'completed');
+            const totalAmount = completed.reduce((s, d) => s + d.amount, 0);
+            const computed75 = computeForm75Data(true).filter(r => r.debitImpact > 0 || r.creditImpact > 0);
+
+            let lines = [
+                `السيد الأستاذ / محمد ماريه المحترم،`,
+                `تحية طيبة وبعد،،`,
+                `مرفق لسيادتكم التقرير اليومي المجمع لأعمال الوحدة الحسابية والتأثيرات المحاسبية على استمارة 75 ع.ح:`,
+                ``,
+                `• الجهة: ${unitName}`,
+                `• الفترة المالية: ${period}`,
+                `• تاريخ التقرير: ${todayStr}`,
+                `• إجمالي المستندات المنجزة: ${completed.length} مستند / تسوية (من أصل ${documentsList.length})`,
+                `• إجمالي القيمة المالية المعتمدة: ${formatMoney(totalAmount)} ج.م`,
+                ``,
+                `--- ملخص التأثيرات على بنود استمارة 75 ع.ح ---`
+            ];
+
+            computed75.forEach(item => {
+                lines.push(`▪ [${item.code}] ${item.name}: منصرف (${formatMoney(item.debitImpact)}) | دائن (${formatMoney(item.creditImpact)}) | أرقام 55 ع.ح: (${item.form55Numbers.join('، ')}) | المراجع: (${item.reviewers.join('، ')}) | أوامر الدفع: (${item.paymentOrders.join('، ')})`);
+            });
+
+            lines.push(``);
+            lines.push(`ملاحظة: تم تنزيل ملف الإكسيل المجمع (استمارة 75 ع.ح + التسويات + التدفقات النقدية) لإرفاقه طي هذه الرسالة.`);
+            lines.push(`مع خالص التحية، منظومة الوحدة الحسابية.`);
+
+            return lines.join('\n');
+        }
+
+        function updateEmailPreview() {
+            const area = document.getElementById('emailBodyPreview');
+            if (area) area.value = buildEmailTextReport();
+        }
+
+        function copyEmailSummary() {
+            const area = document.getElementById('emailBodyPreview');
+            area.select();
+            document.execCommand('copy');
+            showToast('تم نسخ نص التقرير المحاسبي إلى الحافظة بنجاح', 'success');
+        }
+
+        function sendReportViaEmail() {
+            const targetEmail = document.getElementById('targetEmailInput').value.trim() || 'mohammedmaria@yahoo.com';
+            const reportBody = buildEmailTextReport();
+            const subject = `تقرير الوحدة الحسابية واستمارة 75 ع.ح والتسويات - ${todayStr}`;
+
+            // 1. Export the Excel workbook automatically so user has it ready to attach
+            exportFullExcel();
+
+            // 2. Open default mail client pre-filled to mohammedmaria@yahoo.com
+            const mailtoUrl = `mailto:${encodeURIComponent(targetEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportBody)}`;
+            window.location.href = mailtoUrl;
+
+            showToast(`تم تنزيل شيت الإكسيل وفتح البريد للإرسال إلى ${targetEmail}`, 'info');
+        }
+
+        // =========================================================================
+        // 11. INITIALIZATION
+        // =========================================================================
+        function refreshAllViews() {
+            renderDashboard();
+            renderDocumentsTable();
+            renderForm75Table();
+            renderOutputsSection();
+            updateEmailPreview();
+            renderExcelPreview();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('docDate').value = todayStr;
+            document.getElementById('statsDateFilter').value = todayStr;
+            populateAccountDropdown();
+            refreshAllViews();
+        });
+
+        window.addEventListener('resize', () => {
+            if (!document.getElementById('tab-dashboard').classList.contains('hidden')) {
+                renderDailyD3Chart();
+            }
+        });
+    </script>
+</body>
+</html>
